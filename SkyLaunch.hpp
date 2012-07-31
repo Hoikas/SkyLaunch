@@ -40,7 +40,7 @@
 #define SL_OK 0
 #define SL_ERR 1
 
-int ErrorDialog(const char* msg, const char* file, int line)
+inline int ErrorDialog(const char* msg, const char* file, int line)
 {
 #ifdef _DEBUG
     int result = _CrtDbgReport(_CRT_ASSERT, file, line, 0, msg);
