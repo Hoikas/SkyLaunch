@@ -149,7 +149,7 @@ static bool inject_dll()
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
     std::pair<std::wstring, std::wstring> path = find_skyrim();
-    if (path.first.empty() || path.first.empty())
+    if (path.first.empty() || path.second.empty())
     {
         SL_ERROR("Couldn't find Skyrim.");
         return SL_OK;
