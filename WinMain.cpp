@@ -23,6 +23,7 @@
 
 #include <Shlwapi.h>
 #include <tlhelp32.h>
+#include <tuple>
 
 static HANDLE    g_SkyrimProcess = 0;
 static bool      g_SkyrimReady = false;
@@ -35,9 +36,9 @@ static bool      g_SkyrimReady = false;
     { \
         MAKE_PATH(test, data, e); \
         if (PathFileExistsW(test.c_str())) \
-            return std::make_pair(data, e); \
+            return std::make_tuple(data, e); \
     }
-static std::pair<std::wstring, std::wstring> find_skyrim()
+static std::tuple<std::wstring, std::wstring> find_skyrim()
 {
     // find the path to skyrim from the registry
     DWORD type = 0;
@@ -49,13 +50,13 @@ static std::pair<std::wstring, std::wstring> find_skyrim()
         if (!PathFileExistsW(data))
         {
             SL_DERROR("steam directory bogus");
-            return std::make_pair(nullptr, nullptr);
+            return std::make_tuple(L"", L"");
         }
         PathAppendW(data, L"steamapps\\common\\skyrim");
         if (!PathFileExistsW(data))
         {
             SL_DERROR("skyrim directory missing");
-            return std::make_pair(nullptr, nullptr);
+            return std::make_tuple(L"", L"");
         }
         TEST_SKYRIM_EXE(L"skse_loader.exe"); // lots of people use SkyUI
         TEST_SKYRIM_EXE(L"SkyrimLauncher.exe")
@@ -64,15 +65,19 @@ static std::pair<std::wstring, std::wstring> find_skyrim()
     return std::make_pair(nullptr, nullptr);
 }
 
-static bool launch_skyrim(std::pair<std::wstring, std::wstring> path)
+static bool launch_skyrim(std::tuple<std::wstring, std::wstring> path)
 {
+    std::wstring& dir = std::get<0>(path);
+    std::wstring& exe = std::get<1>(path);
+    MAKE_PATH(skyrim, dir, exe);
+
     STARTUPINFOW info;
     memset(&info, 0, sizeof(info));
     info.cb = sizeof(info);
     PROCESS_INFORMATION garbage; // will be handles to the launcher. trash.
-    MAKE_PATH(skyrim, path.first, path.second);
+
     BOOL ret = CreateProcessW(skyrim.c_str(), 0, 0, 0, TRUE, CREATE_NO_WINDOW | NORMAL_PRIORITY_CLASS,
-                              0, path.first.c_str(), &info, &garbage);
+                              0, dir.c_str(), &info, &garbage);
     CloseHandle(garbage.hProcess);
     CloseHandle(garbage.hThread);
     return ret != 0;
@@ -148,8 +153,8 @@ static bool inject_dll()
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-    std::pair<std::wstring, std::wstring> path = find_skyrim();
-    if (path.first.empty() || path.second.empty())
+    std::tuple<std::wstring, std::wstring> path = find_skyrim();
+    if (std::get<0>(path).empty() || std::get<0>(path).empty())
     {
         SL_ERROR("Couldn't find Skyrim.");
         return SL_OK;
